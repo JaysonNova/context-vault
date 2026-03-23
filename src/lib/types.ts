@@ -14,3 +14,9 @@ export type SyncRunListItem = {
   importedConversationCount: number;
   errorSummary?: string;
 };
+
+export type NoteListItem = {
+  id: string;
+  title: string;
+  summary: string;
+};

@@ -2,5 +2,8 @@ pub mod commands;
 pub mod adapters;
 pub mod db;
 pub mod error;
+pub mod export;
 pub mod models;
+pub mod notes;
+pub mod settings;
 pub mod sync;

@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import type { ConversationListItem, SyncRunListItem } from './types';
+import type { ConversationListItem, NoteListItem, SyncRunListItem } from './types';
 
 type RawConversationListItem = {
   id: string;
@@ -45,4 +45,8 @@ export async function listSyncRuns(): Promise<SyncRunListItem[]> {
 
 export async function runSync(request: { trigger: string }): Promise<void> {
   await invoke('run_sync_command', { request });
+}
+
+export async function listNotes(): Promise<NoteListItem[]> {
+  return invoke<NoteListItem[]>('list_notes_command');
 }
