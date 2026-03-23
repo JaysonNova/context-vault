@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import type { ConversationListItem } from './types';
+import type { ConversationListItem, SyncRunListItem } from './types';
 
 type RawConversationListItem = {
   id: string;
@@ -23,4 +23,26 @@ export async function listConversations(): Promise<ConversationListItem[]> {
     updatedAt: row.updated_at,
     noteCount: row.note_count
   }));
+}
+
+type RawSyncRunListItem = {
+  source_app: string;
+  status: string;
+  imported_conversation_count: number;
+  error_summary?: string | null;
+};
+
+export async function listSyncRuns(): Promise<SyncRunListItem[]> {
+  const rows = await invoke<RawSyncRunListItem[]>('list_sync_runs_command');
+
+  return rows.map((row) => ({
+    sourceApp: row.source_app,
+    status: row.status,
+    importedConversationCount: row.imported_conversation_count,
+    errorSummary: row.error_summary ?? undefined
+  }));
+}
+
+export async function runSync(request: { trigger: string }): Promise<void> {
+  await invoke('run_sync_command', { request });
 }

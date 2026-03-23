@@ -7,3 +7,10 @@ export type ConversationListItem = {
   updatedAt: number;
   noteCount: number;
 };
+
+export type SyncRunListItem = {
+  sourceApp: string;
+  status: string;
+  importedConversationCount: number;
+  errorSummary?: string;
+};
