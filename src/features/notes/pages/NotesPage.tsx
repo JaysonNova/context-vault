@@ -24,14 +24,22 @@ export default function NotesPage({ refreshKey = 0 }: NotesPageProps) {
   }, [refreshKey]);
 
   return (
-    <section>
-      <button type="button">导出 Markdown</button>
-      {notes.map((note) => (
-        <article key={note.id}>
-          <h2>{note.title}</h2>
-          <p>{note.summary}</p>
-        </article>
-      ))}
+    <section className="panel-page">
+      <div className="panel-page__header">
+        <div>
+          <p className="panel-page__eyebrow">Knowledge Base</p>
+          <h2>已沉淀笔记</h2>
+        </div>
+        <button type="button">导出 Markdown</button>
+      </div>
+      <div className="panel-page__grid">
+        {notes.map((note) => (
+          <article key={note.id} className="panel-card">
+            <h3>{note.title}</h3>
+            <p>{note.summary}</p>
+          </article>
+        ))}
+      </div>
     </section>
   );
 }

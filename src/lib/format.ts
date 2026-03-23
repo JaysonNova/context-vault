@@ -7,3 +7,16 @@ export function formatTimestamp(timestamp: number): string {
     minute: '2-digit'
   }).format(new Date(timestamp));
 }
+
+export function formatSourceLabel(sourceApp: string): string {
+  switch (sourceApp) {
+    case 'claude_code':
+      return 'Claude Code';
+    case 'codex':
+      return 'CodeX';
+    case 'cursor':
+      return 'Cursor';
+    default:
+      return sourceApp;
+  }
+}

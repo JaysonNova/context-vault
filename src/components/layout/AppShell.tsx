@@ -22,7 +22,7 @@ export default function AppShell({
     <div className="app-shell">
       <Sidebar activeView={activeView} onNavigate={onNavigate} />
       <section className="content-shell">
-        <TopBar onSync={onSync} syncLabel={syncLabel} />
+        <TopBar activeView={activeView} onSync={onSync} syncLabel={syncLabel} />
         <main className="content">{children}</main>
       </section>
     </div>
