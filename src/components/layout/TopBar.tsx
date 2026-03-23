@@ -1,7 +1,14 @@
-export default function TopBar() {
+type TopBarProps = {
+  onSync?: () => void;
+  syncLabel?: string;
+};
+
+export default function TopBar({ onSync, syncLabel = '同步' }: TopBarProps) {
   return (
     <header className="topbar">
-      <button type="button">同步</button>
+      <button type="button" onClick={onSync}>
+        {syncLabel}
+      </button>
     </header>
   );
 }

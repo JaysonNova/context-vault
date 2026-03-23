@@ -1,6 +1,7 @@
 use rusqlite::{named_params, Connection};
 use serde::{Deserialize, Serialize};
 
+use crate::db::connection::open_default_db;
 use crate::db::search::build_like_pattern;
 use crate::error::AppResult;
 use crate::models::ConversationListItem;
@@ -78,6 +79,7 @@ pub fn list_conversations(
 }
 
 #[tauri::command]
-pub fn list_conversations_command() -> Vec<ConversationListItem> {
-    Vec::new()
+pub fn list_conversations_command() -> Result<Vec<ConversationListItem>, String> {
+    let connection = open_default_db().map_err(|error| error.to_string())?;
+    list_conversations(&connection, ArchiveQuery::default()).map_err(|error| error.to_string())
 }

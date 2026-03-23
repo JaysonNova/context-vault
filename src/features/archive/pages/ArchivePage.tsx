@@ -5,7 +5,11 @@ import ConversationList from '../components/ConversationList';
 import { listConversations } from '../../../lib/api';
 import type { ConversationListItem } from '../../../lib/types';
 
-export default function ArchivePage() {
+type ArchivePageProps = {
+  refreshKey?: number;
+};
+
+export default function ArchivePage({ refreshKey = 0 }: ArchivePageProps) {
   const [conversations, setConversations] = useState<ConversationListItem[]>([]);
   const [selectedSyncStrength, setSelectedSyncStrength] = useState<string>();
   const [selectedConversation, setSelectedConversation] = useState<
@@ -27,7 +31,7 @@ export default function ArchivePage() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [refreshKey]);
 
   const filteredConversations = conversations.filter((conversation) =>
     selectedSyncStrength ? conversation.syncStrength === selectedSyncStrength : true

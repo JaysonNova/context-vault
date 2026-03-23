@@ -2,7 +2,11 @@ import { useEffect, useState } from 'react';
 import { listSyncRuns } from '../../../lib/api';
 import type { SyncRunListItem } from '../../../lib/types';
 
-export default function SyncLogPage() {
+type SyncLogPageProps = {
+  refreshKey?: number;
+};
+
+export default function SyncLogPage({ refreshKey = 0 }: SyncLogPageProps) {
   const [runs, setRuns] = useState<SyncRunListItem[]>([]);
 
   useEffect(() => {
@@ -17,12 +21,12 @@ export default function SyncLogPage() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [refreshKey]);
 
   return (
     <section>
-      {runs.map((run) => (
-        <article key={`${run.sourceApp}-${run.status}`}>
+      {runs.map((run, index) => (
+        <article key={`${run.sourceApp}-${run.status}-${index}`}>
           <h2>{run.sourceApp}</h2>
           <p>{run.status}</p>
           <p>{run.importedConversationCount}</p>

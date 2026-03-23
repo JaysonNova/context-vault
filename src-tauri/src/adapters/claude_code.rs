@@ -1,7 +1,9 @@
+use std::env;
 use std::fs;
 use std::path::Path;
 
 use anyhow::{anyhow, Result};
+use glob::glob;
 use serde_json::{json, Value};
 use time::format_description::well_known::Rfc3339;
 use time::OffsetDateTime;
@@ -12,6 +14,10 @@ pub struct ClaudeCodeAdapter;
 
 impl ClaudeCodeAdapter {
     pub fn parse_fixture<P: AsRef<Path>>(path: P) -> Result<ImportedConversation> {
+        Self::parse_file(path)
+    }
+
+    pub fn parse_file<P: AsRef<Path>>(path: P) -> Result<ImportedConversation> {
         let contents = fs::read_to_string(path)?;
         let mut session_id: Option<String> = None;
         let mut cwd: Option<String> = None;
@@ -102,6 +108,18 @@ impl ClaudeCodeAdapter {
             conversation,
             messages,
         })
+    }
+
+    pub fn import_default_sources() -> Result<Vec<ImportedConversation>> {
+        let home = env::var("HOME").map_err(|_| anyhow!("HOME is not set"))?;
+        let pattern = format!("{home}/.claude/projects/**/*.jsonl");
+        let mut conversations = Vec::new();
+
+        for path in glob(&pattern)? {
+            conversations.push(Self::parse_file(path?)?);
+        }
+
+        Ok(conversations)
     }
 }
 

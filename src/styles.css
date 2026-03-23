@@ -19,7 +19,7 @@ button {
 
 .app-shell {
   display: grid;
-  grid-template-columns: 240px 1fr 160px;
+  grid-template-columns: 240px 1fr;
   min-height: 100vh;
 }
 
@@ -32,6 +32,12 @@ button {
   background: #ffffff;
 }
 
+.content-shell {
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+
 .content {
   background: linear-gradient(180deg, #fbfcff 0%, #f2f6ff 100%);
+  padding: 24px;
 }
