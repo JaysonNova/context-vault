@@ -1,0 +1,17 @@
+{
+  "allComposers": [
+    {
+      "type": "head",
+      "composerId": "cursor-composer-1",
+      "name": "国际化技术方案文档更新",
+      "lastUpdatedAt": 1769566588371,
+      "createdAt": 1769512231227,
+      "unifiedMode": "agent",
+      "forceMode": "edit",
+      "subtitle": "Edited settings.json, i18n-guide.md",
+      "createdOnBranch": "feat_i18n",
+      "filesChangedCount": 2,
+      "isArchived": false
+    }
+  ]
+}
