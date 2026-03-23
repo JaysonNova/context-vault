@@ -1,0 +1,18 @@
+[
+  {
+    "id": "codex-session-1",
+    "title": "gRPC MaxConcurrentStreams 排查",
+    "cwd": "/Users/fangtao/Documents/Codebase/kiko-app",
+    "git_branch": "feat/grpc-fix",
+    "git_origin_url": "https://github.com/example/kiko-app.git",
+    "updated_at": 1773026257
+  },
+  {
+    "id": "codex-session-2",
+    "title": "其他会话",
+    "cwd": "/Users/fangtao/Documents/Codebase/other-project",
+    "git_branch": "main",
+    "git_origin_url": "https://github.com/example/other.git",
+    "updated_at": 1773027000
+  }
+]
