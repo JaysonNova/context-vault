@@ -1,0 +1,33 @@
+[package]
+name = "context-vault"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "context_vault_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[[bin]]
+name = "context-vault"
+path = "src/main.rs"
+test = false
+bench = false
+
+[build-dependencies]
+tauri-build = { version = "2" }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+rusqlite = { version = "0.31", features = ["bundled"] }
+thiserror = "1"
+anyhow = "1"
+uuid = { version = "1", features = ["v4", "serde"] }
+keyring = "3"
+walkdir = "2"
+glob = "0.3"
+time = { version = "0.3", features = ["formatting", "macros"] }
+
+[dev-dependencies]
+tempfile = "3"
