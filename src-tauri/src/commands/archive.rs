@@ -1,6 +1,7 @@
 use rusqlite::{named_params, Connection};
 use serde::{Deserialize, Serialize};
 
+use crate::db::search::build_like_pattern;
 use crate::error::AppResult;
 use crate::models::ConversationListItem;
 
@@ -17,7 +18,7 @@ pub fn list_conversations(
     connection: &Connection,
     query: ArchiveQuery,
 ) -> AppResult<Vec<ConversationListItem>> {
-    let text = query.text.map(|value| format!("%{value}%"));
+    let text = build_like_pattern(query.text.clone());
     let mut statement = connection.prepare(
         "
         SELECT

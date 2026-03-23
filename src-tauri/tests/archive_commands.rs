@@ -20,7 +20,7 @@ fn seed_archive_db() -> Connection {
                 "Older conversation",
                 100_i64,
                 100_i64,
-                "full"
+                "partial"
             ],
         )
         .unwrap();
@@ -52,5 +52,21 @@ fn list_conversations_returns_rows_sorted_by_updated_at() {
     let rows = list_conversations(&db, ArchiveQuery::default()).unwrap();
 
     assert_eq!(rows.len(), 2);
+    assert_eq!(rows[0].title, "gRPC 连接池耗尽排查");
+}
+
+#[test]
+fn list_conversations_filters_by_sync_strength() {
+    let db = seed_archive_db();
+    let rows = list_conversations(
+        &db,
+        ArchiveQuery {
+            sync_strength: Some("full".into()),
+            ..ArchiveQuery::default()
+        },
+    )
+    .unwrap();
+
+    assert_eq!(rows.len(), 1);
     assert_eq!(rows[0].title, "gRPC 连接池耗尽排查");
 }
