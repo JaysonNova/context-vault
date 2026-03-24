@@ -11,36 +11,32 @@ Context Vault is a local macOS Tauri app for collecting AI coding conversations 
 
 ## Development
 
-Install dependencies:
+Common commands:
 
 ```bash
+# Install dependencies
 npm install
-```
 
-Run the web tests:
-
-```bash
+# Run all web tests
 npm run test
-```
 
-Run the Rust tests:
-
-```bash
+# Run all Rust tests
 cargo test --manifest-path src-tauri/Cargo.toml
-```
 
-Start the desktop app in development:
-
-```bash
+# Start the desktop app in development
 npm run tauri -- dev
-```
 
-Build the app:
-
-```bash
+# Build the frontend only
 npm run build
+
+# Build the desktop app in release mode
 npm run tauri -- build
+
+# Build only the macOS DMG installer in release mode
+npm run tauri -- build --bundles dmg
 ```
+
+Bundle outputs are generated under `src-tauri/target/release/bundle/`.
 
 ## V1 Source Coverage
 

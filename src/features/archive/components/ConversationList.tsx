@@ -12,6 +12,10 @@ export default function ConversationList({
   selectedConversationId,
   onSelect
 }: ConversationListProps) {
+  if (conversations.length === 0) {
+    return <div className="conversation-list conversation-list--empty">当前筛选条件下暂无对话</div>;
+  }
+
   return (
     <div className="conversation-list">
       {conversations.map((conversation) => (
@@ -19,6 +23,7 @@ export default function ConversationList({
           key={conversation.id}
           type="button"
           aria-label={conversation.title}
+          title={conversation.title}
           className="conversation-list__row"
           data-selected={conversation.id === selectedConversationId}
           data-source={conversation.sourceApp}
@@ -26,7 +31,7 @@ export default function ConversationList({
           onClick={() => onSelect(conversation)}
         >
           <div className="conversation-list__title-row">
-            <strong>{conversation.title}</strong>
+            <strong className="conversation-list__title">{conversation.title}</strong>
             <span className="conversation-list__strength">{conversation.syncStrength}</span>
           </div>
           <p className="conversation-list__preview">{conversation.previewText || '暂无摘要预览'}</p>

@@ -1,13 +1,19 @@
+import { useEffect, useState } from 'react';
 import type { ConversationDetail } from '../../../lib/types';
 import { formatSourceLabel, formatTimestamp } from '../../../lib/format';
 
 type ConversationDetailPaneProps = {
   conversation?: ConversationDetail | null;
+  isExpanded?: boolean;
+  onToggleExpanded?: () => void;
 };
 
 export default function ConversationDetailPane({
-  conversation
+  conversation,
+  isExpanded = false,
+  onToggleExpanded
 }: ConversationDetailPaneProps) {
+  const [collapsedToolMessages, setCollapsedToolMessages] = useState<Record<string, boolean>>({});
   const formattedMetadata = conversation
     ? (() => {
         try {
@@ -18,6 +24,10 @@ export default function ConversationDetailPane({
       })()
     : '';
 
+  useEffect(() => {
+    setCollapsedToolMessages({});
+  }, [conversation?.id]);
+
   if (!conversation) {
     return <section className="detail-pane detail-pane--empty">请选择一条对话查看详情</section>;
   }
@@ -26,13 +36,25 @@ export default function ConversationDetailPane({
   const showTimeline = conversation.syncStrength !== 'metadata_only';
 
   return (
-    <section className="detail-pane">
+    <section className="detail-pane" data-expanded={isExpanded}>
+      <div className="detail-pane__sticky-actions">
+        <span className="detail-pane__badge">{conversation.syncStrength}</span>
+        {onToggleExpanded ? (
+          <button
+            type="button"
+            className="detail-pane__toggle"
+            data-expanded={isExpanded}
+            onClick={onToggleExpanded}
+          >
+            {isExpanded ? '收起详情' : '展开详情'}
+          </button>
+        ) : null}
+      </div>
       <div className="detail-pane__header">
-        <div>
+        <div className="detail-pane__header-copy">
           <p className="detail-pane__eyebrow">{formatSourceLabel(conversation.sourceApp)}</p>
           <h2>{conversation.title}</h2>
         </div>
-        <span className="detail-pane__badge">{conversation.syncStrength}</span>
       </div>
       <div className="detail-pane__meta">
         <span>{conversation.workspaceName ?? '未识别项目'}</span>
@@ -50,23 +72,61 @@ export default function ConversationDetailPane({
               conversation.messages.map((message) => {
                 const variant = getMessageVariant(message.role, message.messageType);
                 const codeLike = isCodeLikeMessage(message.messageType, message.contentText);
+                const messageLabel = formatRoleLabel(message.role, message.messageType);
+                const canToggleToolMessage = canToggleToolPayload(
+                  message.messageType,
+                  message.contentText
+                );
+                const isCollapsed = canToggleToolMessage
+                  ? collapsedToolMessages[message.id] ?? false
+                  : false;
+                const contentId = getMessageContentId(message.id);
 
                 return (
                   <article
                     key={message.id}
                     className="detail-pane__message"
+                    data-collapsed={isCollapsed}
                     data-variant={variant}
                   >
                     <div className="detail-pane__message-meta">
-                      <span className="detail-pane__message-role">
-                        {formatRoleLabel(message.role, message.messageType)}
-                      </span>
+                      <span className="detail-pane__message-role">{messageLabel}</span>
                       <span>{formatTimestamp(message.createdAt)}</span>
+                      {canToggleToolMessage ? (
+                        <button
+                          type="button"
+                          className="detail-pane__message-toggle"
+                          aria-label={isCollapsed ? `展开 ${messageLabel}` : `收起 ${messageLabel}`}
+                          aria-controls={contentId}
+                          aria-expanded={!isCollapsed}
+                          onClick={() =>
+                            setCollapsedToolMessages((current) => ({
+                              ...current,
+                              [message.id]: !isCollapsed
+                            }))
+                          }
+                        >
+                          <span
+                            aria-hidden="true"
+                            className="detail-pane__message-toggle-icon"
+                          />
+                          {isCollapsed ? `展开` : `收起`}
+                        </button>
+                      ) : null}
                     </div>
                     {codeLike ? (
-                      <pre className="detail-pane__message-code">{message.contentText}</pre>
+                      <div
+                        id={contentId}
+                        className="detail-pane__message-code-shell"
+                        data-collapsed={isCollapsed}
+                        data-collapsible={canToggleToolMessage}
+                      >
+                        <pre className="detail-pane__message-code">{message.contentText}</pre>
+                      </div>
                     ) : (
-                      <p className="detail-pane__message-text">{message.contentText}</p>
+                      <p id={contentId} className="detail-pane__message-text">
+                        {message.contentText}
+                      </p>
                     )}
                   </article>
                 );
@@ -158,4 +218,17 @@ function isCodeLikeMessage(messageType: string, contentText: string) {
         contentText
       ))
   );
+}
+
+function canToggleToolPayload(messageType: string, contentText: string) {
+  if (messageType !== 'tool_call' && messageType !== 'tool_result') {
+    return false;
+  }
+
+  const lineCount = contentText.split(/\r?\n/).length;
+  return lineCount > 10 || contentText.length > 600;
+}
+
+function getMessageContentId(messageId: string) {
+  return `detail-pane-message-${messageId.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
 }

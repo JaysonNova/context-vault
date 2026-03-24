@@ -7,7 +7,7 @@ type AppShellProps = {
   activeView?: AppView;
   onNavigate?: (view: AppView) => void;
   onSync?: () => void;
-  syncLabel?: string;
+  isSyncing?: boolean;
   children?: ReactNode;
 };
 
@@ -15,15 +15,20 @@ export default function AppShell({
   activeView = 'archive',
   onNavigate,
   onSync,
-  syncLabel,
+  isSyncing,
   children
 }: AppShellProps) {
   return (
     <div className="app-shell">
       <Sidebar activeView={activeView} onNavigate={onNavigate} />
       <section className="content-shell">
-        <TopBar activeView={activeView} onSync={onSync} syncLabel={syncLabel} />
-        <main className="content">{children}</main>
+        <TopBar activeView={activeView} onSync={onSync} isSyncing={isSyncing} />
+        <main
+          className="content"
+          data-scroll-mode={activeView === 'archive' ? 'contained' : 'page'}
+        >
+          {children}
+        </main>
       </section>
     </div>
   );

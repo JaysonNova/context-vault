@@ -41,6 +41,13 @@ pub fn list_conversations(
             SELECT content_text
             FROM messages
             WHERE messages.conversation_id = conversations.id
+              AND messages.message_type IN ('assistant', 'user')
+            ORDER BY created_at DESC
+            LIMIT 1
+          ), (
+            SELECT content_text
+            FROM messages
+            WHERE messages.conversation_id = conversations.id
             ORDER BY created_at DESC
             LIMIT 1
           ), '') AS preview_text,
@@ -164,6 +171,13 @@ pub fn get_conversation_detail(
               conversations.updated_at,
               COUNT(note_sources.note_id) AS note_count,
               COALESCE((
+                SELECT content_text
+                FROM messages
+                WHERE messages.conversation_id = conversations.id
+                  AND messages.message_type IN ('assistant', 'user')
+                ORDER BY created_at DESC
+                LIMIT 1
+              ), (
                 SELECT content_text
                 FROM messages
                 WHERE messages.conversation_id = conversations.id

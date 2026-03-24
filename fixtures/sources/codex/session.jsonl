@@ -1,0 +1,4 @@
+{"timestamp":"2026-03-24T01:23:58.000Z","type":"session_meta","payload":{"id":"codex-session-1","cwd":"/Users/fangtao/Documents/Codebase/kiko-app"}}
+{"timestamp":"2026-03-24T01:24:01.000Z","type":"response_item","payload":{"type":"message","role":"assistant","content":[{"type":"output_text","text":"MaxConcurrentStreams 过低会限制同一连接上的并发流数量。"},{"type":"output_text","text":"当请求突增时，超出的流会排队，严重时会触发 RESOURCE_EXHAUSTED。"}]}}
+{"timestamp":"2026-03-24T01:24:03.000Z","type":"response_item","payload":{"type":"function_call","name":"exec_command","arguments":"{\"cmd\":\"rg -n \\\"MaxConcurrentStreams\\\" server\"}","call_id":"call_1"}}
+{"timestamp":"2026-03-24T01:24:04.000Z","type":"response_item","payload":{"type":"function_call_output","call_id":"call_1","output":"server/grpc.rs:18:grpc::Server::builder().max_concurrent_streams(100)"}}

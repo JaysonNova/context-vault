@@ -5,7 +5,8 @@
     "cwd": "/Users/fangtao/Documents/Codebase/kiko-app",
     "git_branch": "feat/grpc-fix",
     "git_origin_url": "https://github.com/example/kiko-app.git",
-    "updated_at": 1773026257
+    "updated_at": 1773026257,
+    "rollout_path": "session.jsonl"
   },
   {
     "id": "codex-session-2",

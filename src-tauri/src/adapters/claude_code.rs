@@ -229,10 +229,10 @@ fn normalize_assistant_message(
                     .map(ToOwned::to_owned);
                 let content_text = item
                     .get("input")
-                    .and_then(|input| input.get("command"))
-                    .and_then(Value::as_str)
-                    .unwrap_or_default()
-                    .to_string();
+                    .map(format_tool_input)
+                    .filter(|value| !value.is_empty())
+                    .or_else(|| tool_name.clone())
+                    .unwrap_or_default();
 
                 return Ok(Some(MessageImport {
                     source_message_id: uuid.clone(),
@@ -249,6 +249,18 @@ fn normalize_assistant_message(
     }
 
     Ok(None)
+}
+
+fn format_tool_input(value: &Value) -> String {
+    if let Some(command) = value.get("command").and_then(Value::as_str) {
+        return command.to_string();
+    }
+
+    if let Some(text) = value.as_str() {
+        return text.to_string();
+    }
+
+    serde_json::to_string_pretty(value).unwrap_or_default()
 }
 
 fn parse_rfc3339_millis(value: &str) -> Result<i64> {

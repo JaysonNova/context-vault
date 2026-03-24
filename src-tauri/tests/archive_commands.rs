@@ -76,6 +76,42 @@ fn seed_archive_db() -> Connection {
             "INSERT INTO messages (
                 id, conversation_id, source_message_id, role, message_type, content_text,
                 tool_name, token_count, created_at, raw_payload_json
+            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, NULL, ?8, '{}')",
+            params![
+                "msg_3",
+                "conv_2",
+                "source_msg_3",
+                "assistant",
+                "tool_call",
+                r#"{"cmd":"rg gRPC"}"#,
+                "exec_command",
+                202_i64
+            ],
+        )
+        .unwrap();
+    connection
+        .execute(
+            "INSERT INTO messages (
+                id, conversation_id, source_message_id, role, message_type, content_text,
+                tool_name, token_count, created_at, raw_payload_json
+            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, NULL, ?8, '{}')",
+            params![
+                "msg_4",
+                "conv_2",
+                "source_msg_4",
+                "tool",
+                "tool_result",
+                "Command output from rg gRPC",
+                "exec_command",
+                203_i64
+            ],
+        )
+        .unwrap();
+    connection
+        .execute(
+            "INSERT INTO messages (
+                id, conversation_id, source_message_id, role, message_type, content_text,
+                tool_name, token_count, created_at, raw_payload_json
             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, NULL, NULL, ?7, '{}')",
             params![
                 "msg_2",
@@ -120,7 +156,7 @@ fn list_conversations_returns_rows_sorted_by_updated_at() {
 
     assert_eq!(rows.len(), 2);
     assert_eq!(rows[0].title, "gRPC 连接池耗尽排查");
-    assert_eq!(rows[0].message_count, 2);
+    assert_eq!(rows[0].message_count, 4);
     assert_eq!(rows[0].preview_text, "根因是服务端并发流上限过低。");
 }
 
@@ -156,6 +192,6 @@ fn conversation_detail_returns_workspace_and_message_timeline() {
     let detail = get_conversation_detail(&db, "conv_2").unwrap().unwrap();
 
     assert_eq!(detail.workspace_name.as_deref(), Some("kiko-app"));
-    assert_eq!(detail.messages.len(), 2);
+    assert_eq!(detail.messages.len(), 4);
     assert_eq!(detail.messages[0].content_text, "排查 gRPC RESOURCE_EXHAUSTED 的根因");
 }

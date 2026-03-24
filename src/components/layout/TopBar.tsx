@@ -1,7 +1,7 @@
 type TopBarProps = {
   activeView?: string;
   onSync?: () => void;
-  syncLabel?: string;
+  isSyncing?: boolean;
 };
 
 const viewTitles: Record<string, { title: string; subtitle: string }> = {
@@ -14,7 +14,7 @@ const viewTitles: Record<string, { title: string; subtitle: string }> = {
 export default function TopBar({
   activeView = 'archive',
   onSync,
-  syncLabel = '同步'
+  isSyncing = false
 }: TopBarProps) {
   const currentCopy = viewTitles[activeView] ?? viewTitles.archive;
 
@@ -26,8 +26,15 @@ export default function TopBar({
       </div>
       <div className="topbar__actions">
         <span className="topbar__hint">启动扫描 + 手动同步</span>
-        <button type="button" onClick={onSync}>
-          {syncLabel}
+        <button
+          type="button"
+          className="topbar__sync"
+          disabled={isSyncing}
+          aria-busy={isSyncing}
+          onClick={onSync}
+        >
+          {isSyncing ? <span className="topbar__sync-spinner" aria-hidden="true" /> : null}
+          <span>{isSyncing ? '同步中' : '同步'}</span>
         </button>
       </div>
     </header>

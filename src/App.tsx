@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { startTransition, useEffect, useState, type ReactNode } from 'react';
 import AppShell from './components/layout/AppShell';
 import type { AppView } from './components/layout/Sidebar';
 import ArchivePage from './features/archive/pages/ArchivePage';
@@ -10,15 +10,25 @@ import { runSync } from './lib/api';
 export default function App() {
   const [activeView, setActiveView] = useState<AppView>('archive');
   const [refreshKey, setRefreshKey] = useState(0);
-  const [syncLabel, setSyncLabel] = useState('同步');
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [visitedViews, setVisitedViews] = useState<Record<AppView, boolean>>({
+    archive: true,
+    notes: false,
+    sync: false,
+    settings: false
+  });
 
   const handleSync = async (trigger: string) => {
-    setSyncLabel('同步中...');
+    if (isSyncing) {
+      return;
+    }
+
+    setIsSyncing(true);
     try {
       await runSync({ trigger });
       setRefreshKey((current) => current + 1);
     } finally {
-      setSyncLabel('同步');
+      setIsSyncing(false);
     }
   };
 
@@ -26,17 +36,53 @@ export default function App() {
     void handleSync('startup');
   }, []);
 
+  useEffect(() => {
+    setVisitedViews((current) => {
+      if (current[activeView]) {
+        return current;
+      }
+
+      return {
+        ...current,
+        [activeView]: true
+      };
+    });
+  }, [activeView]);
+
+  const handleNavigate = (view: AppView) => {
+    startTransition(() => {
+      setActiveView(view);
+    });
+  };
+
+  const renderView = (view: AppView, content: ReactNode) => {
+    if (!visitedViews[view]) {
+      return null;
+    }
+
+    return (
+      <section
+        className="app-view"
+        data-view={view}
+        hidden={activeView !== view}
+        aria-hidden={activeView !== view}
+      >
+        {content}
+      </section>
+    );
+  };
+
   return (
     <AppShell
       activeView={activeView}
-      onNavigate={setActiveView}
+      onNavigate={handleNavigate}
       onSync={() => void handleSync('manual')}
-      syncLabel={syncLabel}
+      isSyncing={isSyncing}
     >
-      {activeView === 'archive' ? <ArchivePage refreshKey={refreshKey} /> : null}
-      {activeView === 'notes' ? <NotesPage refreshKey={refreshKey} /> : null}
-      {activeView === 'sync' ? <SyncLogPage refreshKey={refreshKey} /> : null}
-      {activeView === 'settings' ? <SettingsPage /> : null}
+      {renderView('archive', <ArchivePage refreshKey={refreshKey} />)}
+      {renderView('notes', <NotesPage refreshKey={refreshKey} />)}
+      {renderView('sync', <SyncLogPage refreshKey={refreshKey} />)}
+      {renderView('settings', <SettingsPage />)}
     </AppShell>
   );
 }
