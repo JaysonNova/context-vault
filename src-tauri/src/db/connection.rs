@@ -9,6 +9,7 @@ use crate::error::AppResult;
 
 pub fn open_and_migrate<P: AsRef<Path>>(path: P) -> AppResult<Connection> {
     let connection = Connection::open(path)?;
+    configure_connection(&connection)?;
     run_migrations(&connection)?;
     Ok(connection)
 }
@@ -28,4 +29,17 @@ pub fn open_default_db() -> AppResult<Connection> {
     let storage_dir = default_storage_dir();
     fs::create_dir_all(&storage_dir)?;
     open_and_migrate(default_db_path())
+}
+
+fn configure_connection(connection: &Connection) -> AppResult<()> {
+    connection.execute_batch(
+        "
+        PRAGMA foreign_keys = ON;
+        PRAGMA busy_timeout = 5000;
+        PRAGMA temp_store = MEMORY;
+        PRAGMA journal_mode = WAL;
+        PRAGMA synchronous = NORMAL;
+        ",
+    )?;
+    Ok(())
 }

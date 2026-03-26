@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { memo, useEffect, useState } from 'react';
 import { listSyncRuns } from '../../../lib/api';
 import type { SyncRunListItem } from '../../../lib/types';
 
@@ -6,7 +6,7 @@ type SyncLogPageProps = {
   refreshKey?: number;
 };
 
-export default function SyncLogPage({ refreshKey = 0 }: SyncLogPageProps) {
+function SyncLogPage({ refreshKey = 0 }: SyncLogPageProps) {
   const [runs, setRuns] = useState<SyncRunListItem[]>([]);
 
   useEffect(() => {
@@ -42,3 +42,7 @@ export default function SyncLogPage({ refreshKey = 0 }: SyncLogPageProps) {
     </section>
   );
 }
+
+SyncLogPage.displayName = 'SyncLogPage';
+
+export default memo(SyncLogPage);

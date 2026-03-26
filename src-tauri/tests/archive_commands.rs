@@ -1,7 +1,8 @@
 use rusqlite::{params, Connection};
 
 use context_vault_lib::commands::archive::{
-    get_archive_facets, get_conversation_detail, list_conversations, ArchiveQuery,
+    get_archive_facets, get_conversation_detail, list_conversations, soft_delete_conversation,
+    ArchiveQuery,
 };
 use context_vault_lib::db::migrations::run_migrations;
 
@@ -22,7 +23,7 @@ fn seed_archive_db() -> Connection {
             "INSERT INTO conversations (
                 id, source_app, source_conversation_id, workspace_id, title, subtitle,
                 created_at, updated_at, sync_strength, status, raw_metadata_json
-            ) VALUES (?1, ?2, ?3, NULL, ?4, NULL, ?5, ?6, ?7, 'ready', '{}')",
+            ) VALUES (?1, ?2, ?3, NULL, ?4, NULL, ?5, ?6, ?7, 'ready', ?8)",
             params![
                 "conv_1",
                 "codex",
@@ -30,7 +31,8 @@ fn seed_archive_db() -> Connection {
                 "Older conversation",
                 100_i64,
                 100_i64,
-                "partial"
+                "partial",
+                r#"{"cwd":"/tmp/codex project"}"#
             ],
         )
         .unwrap();
@@ -194,4 +196,200 @@ fn conversation_detail_returns_workspace_and_message_timeline() {
     assert_eq!(detail.workspace_name.as_deref(), Some("kiko-app"));
     assert_eq!(detail.messages.len(), 4);
     assert_eq!(detail.messages[0].content_text, "排查 gRPC RESOURCE_EXHAUSTED 的根因");
+    assert_eq!(detail.resume_command.as_deref(), Some("claude --resume source_2"));
+}
+
+#[test]
+fn conversation_detail_returns_codex_resume_command_with_cwd_when_available() {
+    let db = seed_archive_db();
+    let detail = get_conversation_detail(&db, "conv_1").unwrap().unwrap();
+
+    assert_eq!(
+        detail.resume_command.as_deref(),
+        Some("codex resume -C '/tmp/codex project' source_1")
+    );
+}
+
+#[test]
+fn conversation_detail_returns_short_codex_resume_command_when_cwd_is_missing() {
+    let db = seed_archive_db();
+    db.execute(
+        "UPDATE conversations SET raw_metadata_json = '{}'
+         WHERE id = 'conv_1'",
+        [],
+    )
+    .unwrap();
+
+    let detail = get_conversation_detail(&db, "conv_1").unwrap().unwrap();
+
+    assert_eq!(detail.resume_command.as_deref(), Some("codex resume source_1"));
+}
+
+#[test]
+fn conversation_detail_returns_claude_resume_command_with_cwd_when_available() {
+    let db = seed_archive_db();
+    db.execute(
+        "UPDATE conversations
+         SET raw_metadata_json = ?1
+         WHERE id = 'conv_2'",
+        [r#"{"cwd":"/tmp/claude project"}"#],
+    )
+    .unwrap();
+
+    let detail = get_conversation_detail(&db, "conv_2").unwrap().unwrap();
+
+    assert_eq!(
+        detail.resume_command.as_deref(),
+        Some("cd '/tmp/claude project' && claude --resume source_2")
+    );
+}
+
+#[test]
+fn conversation_detail_returns_short_claude_resume_command_when_cwd_is_missing() {
+    let db = seed_archive_db();
+
+    let detail = get_conversation_detail(&db, "conv_2").unwrap().unwrap();
+
+    assert_eq!(detail.resume_command.as_deref(), Some("claude --resume source_2"));
+}
+
+#[test]
+fn conversation_detail_omits_resume_command_when_session_id_is_blank() {
+    let db = seed_archive_db();
+    db.execute(
+        "UPDATE conversations
+         SET source_conversation_id = '   '
+         WHERE id = 'conv_2'",
+        [],
+    )
+    .unwrap();
+
+    let detail = get_conversation_detail(&db, "conv_2").unwrap().unwrap();
+
+    assert_eq!(detail.resume_command, None);
+}
+
+#[test]
+fn soft_delete_conversation_hides_deleted_records_from_archive_queries() {
+    let db = seed_archive_db();
+
+    soft_delete_conversation(&db, "conv_1").unwrap();
+
+    let rows = list_conversations(&db, ArchiveQuery::default()).unwrap();
+    let facets = get_archive_facets(&db).unwrap();
+    let detail = get_conversation_detail(&db, "conv_1").unwrap();
+    let status: String = db
+        .query_row(
+            "SELECT status FROM conversations WHERE id = 'conv_1'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+
+    assert_eq!(status, "deleted");
+    assert_eq!(rows.len(), 1);
+    assert_eq!(rows[0].id, "conv_2");
+    assert_eq!(facets.total_count, 1);
+    assert_eq!(facets.source_counts.len(), 1);
+    assert_eq!(facets.source_counts[0].source_app, "claude_code");
+    assert!(detail.is_none());
+}
+
+#[test]
+fn soft_delete_conversation_rejects_non_codex_and_non_claude_sources() {
+    let db = seed_archive_db();
+    db.execute(
+        "INSERT INTO conversations (
+            id, source_app, source_conversation_id, workspace_id, title, subtitle,
+            created_at, updated_at, sync_strength, status, raw_metadata_json
+        ) VALUES (?1, ?2, ?3, NULL, ?4, NULL, ?5, ?6, ?7, 'ready', '{}')",
+        params![
+            "conv_3",
+            "cursor",
+            "source_3",
+            "Cursor Conversation",
+            300_i64,
+            300_i64,
+            "metadata_only"
+        ],
+    )
+    .unwrap();
+
+    let error = soft_delete_conversation(&db, "conv_3").unwrap_err();
+    let status: String = db
+        .query_row(
+            "SELECT status FROM conversations WHERE id = 'conv_3'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+
+    assert_eq!(
+        error.to_string(),
+        "only codex and claude_code conversations can be deleted"
+    );
+    assert_eq!(status, "ready");
+}
+
+#[test]
+fn list_conversations_falls_back_to_subtitle_when_metadata_only_has_no_messages() {
+    let db = seed_archive_db();
+    db.execute(
+        "INSERT INTO conversations (
+            id, source_app, source_conversation_id, workspace_id, title, subtitle,
+            created_at, updated_at, sync_strength, status, raw_metadata_json
+        ) VALUES (?1, ?2, ?3, NULL, ?4, ?5, ?6, ?7, ?8, 'ready', ?9)",
+        params![
+            "conv_3",
+            "cursor",
+            "cursor-source-1",
+            "Untitled Cursor Composer",
+            "Edited src/app.ts, docs/spec.md",
+            150_i64,
+            150_i64,
+            "metadata_only",
+            r#"{"workspace_path":"/tmp/cursor-workspace"}"#
+        ],
+    )
+    .unwrap();
+
+    let rows = list_conversations(
+        &db,
+        ArchiveQuery {
+            source_app: Some("cursor".into()),
+            ..ArchiveQuery::default()
+        },
+    )
+    .unwrap();
+
+    assert_eq!(rows.len(), 1);
+    assert_eq!(rows[0].preview_text, "Edited src/app.ts, docs/spec.md");
+}
+
+#[test]
+fn conversation_detail_falls_back_to_subtitle_when_metadata_only_has_no_messages() {
+    let db = seed_archive_db();
+    db.execute(
+        "INSERT INTO conversations (
+            id, source_app, source_conversation_id, workspace_id, title, subtitle,
+            created_at, updated_at, sync_strength, status, raw_metadata_json
+        ) VALUES (?1, ?2, ?3, NULL, ?4, ?5, ?6, ?7, ?8, 'ready', ?9)",
+        params![
+            "conv_3",
+            "cursor",
+            "cursor-source-1",
+            "Untitled Cursor Composer",
+            "Edited src/app.ts, docs/spec.md",
+            150_i64,
+            150_i64,
+            "metadata_only",
+            r#"{"workspace_path":"/tmp/cursor-workspace"}"#
+        ],
+    )
+    .unwrap();
+
+    let detail = get_conversation_detail(&db, "conv_3").unwrap().unwrap();
+
+    assert_eq!(detail.preview_text, "Edited src/app.ts, docs/spec.md");
+    assert!(detail.messages.is_empty());
 }

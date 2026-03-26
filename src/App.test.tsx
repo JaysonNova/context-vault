@@ -14,6 +14,13 @@ const viewMounts = vi.hoisted(() => ({
   settings: 0
 }));
 
+const viewRenders = vi.hoisted(() => ({
+  archive: 0,
+  notes: 0,
+  sync: 0,
+  settings: 0
+}));
+
 vi.mock('./lib/api', () => ({
   runSync: apiMocks.runSync
 }));
@@ -23,6 +30,8 @@ vi.mock('./features/archive/pages/ArchivePage', async () => {
 
   return {
     default: ({ refreshKey = 0 }: { refreshKey?: number }) => {
+      viewRenders.archive += 1;
+
       React.useEffect(() => {
         viewMounts.archive += 1;
       }, []);
@@ -37,6 +46,8 @@ vi.mock('./features/notes/pages/NotesPage', async () => {
 
   return {
     default: () => {
+      viewRenders.notes += 1;
+
       React.useEffect(() => {
         viewMounts.notes += 1;
       }, []);
@@ -51,6 +62,8 @@ vi.mock('./features/sync/pages/SyncLogPage', async () => {
 
   return {
     default: () => {
+      viewRenders.sync += 1;
+
       React.useEffect(() => {
         viewMounts.sync += 1;
       }, []);
@@ -65,6 +78,8 @@ vi.mock('./features/settings/pages/SettingsPage', async () => {
 
   return {
     default: () => {
+      viewRenders.settings += 1;
+
       React.useEffect(() => {
         viewMounts.settings += 1;
       }, []);
@@ -114,22 +129,29 @@ it('keeps visited pages mounted when switching between notes and archive', async
 
   viewMounts.archive = 0;
   viewMounts.notes = 0;
+  viewRenders.archive = 0;
+  viewRenders.notes = 0;
   apiMocks.runSync.mockResolvedValue(undefined);
 
   render(<App />);
 
   await screen.findByText('Archive refresh 1');
   expect(viewMounts.archive).toBe(1);
+  expect(viewRenders.archive).toBe(2);
 
   await user.click(screen.getByRole('button', { name: '知识笔记' }));
   await screen.findByText('Notes');
   expect(viewMounts.notes).toBe(1);
+  expect(viewRenders.archive).toBe(2);
+  expect(viewRenders.notes).toBe(1);
 
   await user.click(screen.getByRole('button', { name: '对话记录' }));
   await screen.findByText('Archive refresh 1');
 
   expect(viewMounts.archive).toBe(1);
   expect(viewMounts.notes).toBe(1);
+  expect(viewRenders.archive).toBe(2);
+  expect(viewRenders.notes).toBe(1);
 });
 
 it('uses contained scrolling for archive view and page scrolling for other views', async () => {

@@ -47,7 +47,11 @@ pub fn list_sync_runs_command() -> Result<Vec<SyncRunListItem>, String> {
 }
 
 #[tauri::command]
-pub fn run_sync_command(_request: RunSyncRequest) -> Result<SyncRunResult, String> {
-    let connection = open_default_db().map_err(|error| error.to_string())?;
-    run_sync(&connection).map_err(|error| error.to_string())
+pub async fn run_sync_command(_request: RunSyncRequest) -> Result<SyncRunResult, String> {
+    tauri::async_runtime::spawn_blocking(|| {
+        let mut connection = open_default_db().map_err(|error| error.to_string())?;
+        run_sync(&mut connection).map_err(|error| error.to_string())
+    })
+    .await
+    .map_err(|error| error.to_string())?
 }

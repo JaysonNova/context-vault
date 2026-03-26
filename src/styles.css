@@ -287,8 +287,9 @@ select {
 }
 
 .conversation-filters {
+  --conversation-filters-summary-width: 7.5rem;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) var(--conversation-filters-summary-width);
   gap: 14px;
   padding: 16px;
   min-width: 0;
@@ -330,8 +331,10 @@ select {
   display: flex;
   align-items: center;
   justify-content: flex-end;
+  min-width: 0;
   color: #7b87a1;
   font-size: 13px;
+  white-space: nowrap;
 }
 
 .conversation-filters__chips {
@@ -381,15 +384,25 @@ select {
   color: #6f7d98;
 }
 
+.conversation-list__item {
+  position: relative;
+}
+
 .conversation-list__row {
+  --conversation-list-preview-lines: 5;
   display: grid;
   gap: 10px;
+  width: 100%;
   padding: 16px;
   border-radius: 18px;
   border: 1px solid transparent;
   background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(245,248,255,0.92));
   text-align: left;
   min-width: 0;
+}
+
+.conversation-list__row--deletable {
+  padding-right: 72px;
 }
 
 .conversation-list__row[data-selected='true'] {
@@ -450,6 +463,14 @@ select {
   overflow-wrap: anywhere;
 }
 
+.conversation-list__preview {
+  display: -webkit-box;
+  max-height: calc(1.55em * var(--conversation-list-preview-lines));
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: var(--conversation-list-preview-lines);
+}
+
 .conversation-list__meta,
 .detail-pane__meta {
   display: flex;
@@ -458,6 +479,35 @@ select {
   color: #8792aa;
   font-size: 12px;
   min-width: 0;
+}
+
+.conversation-list__delete {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 8px 10px;
+  border-radius: 999px;
+  background: rgba(190, 49, 49, 0.1);
+  color: #a73939;
+  font-size: 12px;
+  font-weight: 700;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 140ms ease, transform 140ms ease, background 140ms ease;
+  transform: translateY(-2px);
+}
+
+.conversation-list__item:hover .conversation-list__delete,
+.conversation-list__item:focus-within .conversation-list__delete {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.conversation-list__delete:hover,
+.conversation-list__delete:focus-visible {
+  background: rgba(190, 49, 49, 0.18);
+  outline: none;
 }
 
 .detail-pane {
@@ -532,6 +582,84 @@ select {
   color: #7b88a4;
 }
 
+.archive-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(24, 33, 52, 0.32);
+  backdrop-filter: blur(10px);
+}
+
+.archive-dialog {
+  width: min(100%, 420px);
+  display: grid;
+  gap: 20px;
+  padding: 22px;
+  border: 1px solid rgba(129, 149, 195, 0.18);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 30px 60px rgba(40, 57, 94, 0.2);
+}
+
+.archive-dialog__eyebrow {
+  margin: 0 0 6px;
+  color: #8a96b2;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.archive-dialog__copy h2 {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1.15;
+}
+
+.archive-dialog__copy p {
+  margin: 8px 0 0;
+  color: #66748f;
+  line-height: 1.55;
+}
+
+.archive-dialog__conversation {
+  font-weight: 700;
+  color: #20314f;
+  overflow-wrap: anywhere;
+}
+
+.archive-dialog__error {
+  color: #a13b3b;
+}
+
+.archive-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.archive-dialog__actions button {
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: #eef2fb;
+  color: #4a5c82;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.archive-dialog__actions button:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+.archive-dialog__confirm {
+  background: linear-gradient(135deg, #c64a4a, #e56b6b) !important;
+  color: #fff !important;
+}
+
 .detail-pane__sticky-actions {
   display: flex;
   align-items: center;
@@ -579,6 +707,25 @@ select {
 .detail-pane__toggle[data-expanded='true'] {
   background: linear-gradient(135deg, #4d6bff, #7e94ff);
   color: #fff;
+}
+
+.detail-pane__resume-copy {
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: #eef2fb;
+  color: #4a5c82;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.detail-pane__resume-copy[data-status='success'] {
+  background: linear-gradient(135deg, #18a06a, #35be85);
+  color: #fff;
+}
+
+.detail-pane__resume-copy[data-status='error'] {
+  background: rgba(202, 72, 72, 0.14);
+  color: #a13b3b;
 }
 
 .detail-pane__section {

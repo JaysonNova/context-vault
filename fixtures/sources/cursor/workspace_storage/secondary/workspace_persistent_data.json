@@ -1,0 +1,14 @@
+{
+  "cachedSelectedGitState": {
+    "ref": "feat_sync_log"
+  },
+  "cachedSelectedRemote": {
+    "name": "origin",
+    "url": "git@github.com:example/context-vault.git",
+    "rootUri": {
+      "external": "file:///Users/fangtao/Documents/Codebase/context-vault",
+      "path": "/Users/fangtao/Documents/Codebase/context-vault",
+      "scheme": "file"
+    }
+  }
+}

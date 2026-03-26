@@ -46,6 +46,7 @@ export type ConversationDetail = {
   noteCount: number;
   previewText: string;
   rawMetadataJson: string;
+  resumeCommand?: string;
   messages: ConversationDetailMessage[];
 };
 

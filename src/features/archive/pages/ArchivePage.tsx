@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { memo, useEffect, useState } from 'react';
 import ArchivePagination from '../components/ArchivePagination';
 import ArchiveSourceRail from '../components/ArchiveSourceRail';
 import ConversationDetailPane from '../components/ConversationDetailPane';
@@ -7,7 +7,8 @@ import ConversationList from '../components/ConversationList';
 import {
   getArchiveFacets,
   getConversationDetail,
-  listConversations
+  listConversations,
+  softDeleteConversation
 } from '../../../lib/api';
 import type {
   ArchiveFacets,
@@ -20,8 +21,10 @@ type ArchivePageProps = {
 };
 
 const DEFAULT_PAGE_SIZE = 10;
+const DELETE_DIALOG_TITLE_ID = 'delete-conversation-dialog-title';
+const DELETE_DIALOG_DESCRIPTION_ID = 'delete-conversation-dialog-description';
 
-export default function ArchivePage({ refreshKey = 0 }: ArchivePageProps) {
+function ArchivePage({ refreshKey = 0 }: ArchivePageProps) {
   const [facets, setFacets] = useState<ArchiveFacets>({ totalCount: 0, sourceCounts: [] });
   const [conversations, setConversations] = useState<ConversationListItem[]>([]);
   const [searchTextDraft, setSearchTextDraft] = useState('');
@@ -35,6 +38,10 @@ export default function ArchivePage({ refreshKey = 0 }: ArchivePageProps) {
   const [selectedConversationId, setSelectedConversationId] = useState<string>();
   const [selectedConversationDetail, setSelectedConversationDetail] =
     useState<ConversationDetail | null>(null);
+  const [pendingDeleteConversation, setPendingDeleteConversation] =
+    useState<ConversationListItem | null>(null);
+  const [deleteError, setDeleteError] = useState<string>();
+  const [isDeletingConversation, setIsDeletingConversation] = useState(false);
 
   useEffect(() => {
     void getArchiveFacets().then((items) => {
@@ -129,6 +136,56 @@ export default function ArchivePage({ refreshKey = 0 }: ArchivePageProps) {
     setPageSize(nextPageSize);
   };
 
+  const handleDeleteRequest = (conversation: ConversationListItem) => {
+    setDeleteError(undefined);
+    setPendingDeleteConversation(conversation);
+  };
+
+  const handleDeleteCancel = () => {
+    if (isDeletingConversation) {
+      return;
+    }
+
+    setDeleteError(undefined);
+    setPendingDeleteConversation(null);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!pendingDeleteConversation || isDeletingConversation) {
+      return;
+    }
+
+    setIsDeletingConversation(true);
+    setDeleteError(undefined);
+
+    try {
+      const deletedConversationId = pendingDeleteConversation.id;
+      await softDeleteConversation(deletedConversationId);
+
+      if (selectedConversationId === deletedConversationId) {
+        setSelectedConversationId(undefined);
+        setSelectedConversationDetail(null);
+      }
+
+      const [nextConversations, nextFacets] = await Promise.all([
+        listConversations({
+          text: searchText || undefined,
+          sourceApp: selectedSourceApp,
+          syncStrength: selectedSyncStrength as ConversationListItem['syncStrength'] | undefined
+        }),
+        getArchiveFacets()
+      ]);
+
+      setConversations(nextConversations);
+      setFacets(nextFacets);
+      setPendingDeleteConversation(null);
+    } catch (error) {
+      setDeleteError(getErrorMessage(error));
+    } finally {
+      setIsDeletingConversation(false);
+    }
+  };
+
   if (facets.totalCount === 0 && conversations.length === 0) {
     return <section>还没有同步任何对话</section>;
   }
@@ -157,6 +214,7 @@ export default function ArchivePage({ refreshKey = 0 }: ArchivePageProps) {
             conversations={pagedConversations}
             selectedConversationId={selectedConversationId}
             onSelect={(conversation) => setSelectedConversationId(conversation.id)}
+            onDeleteRequest={handleDeleteRequest}
           />
           <ArchivePagination
             currentPage={visiblePage}
@@ -175,6 +233,56 @@ export default function ArchivePage({ refreshKey = 0 }: ArchivePageProps) {
         isExpanded={isDetailExpanded}
         onToggleExpanded={() => setIsDetailExpanded((current) => !current)}
       />
+      {pendingDeleteConversation ? (
+        <div className="archive-dialog-backdrop">
+          <section
+            className="archive-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={DELETE_DIALOG_TITLE_ID}
+            aria-describedby={DELETE_DIALOG_DESCRIPTION_ID}
+          >
+            <div className="archive-dialog__copy">
+              <p className="archive-dialog__eyebrow">删除确认</p>
+              <h2 id={DELETE_DIALOG_TITLE_ID}>确认删除历史记录</h2>
+              <p id={DELETE_DIALOG_DESCRIPTION_ID}>
+                仅从 Context Vault 已同步数据库中隐藏，不删除本地 Claude/Codex 原始记录。
+              </p>
+              <p className="archive-dialog__conversation">{pendingDeleteConversation.title}</p>
+              {deleteError ? <p className="archive-dialog__error">{deleteError}</p> : null}
+            </div>
+            <div className="archive-dialog__actions">
+              <button type="button" onClick={handleDeleteCancel} disabled={isDeletingConversation}>
+                取消
+              </button>
+              <button
+                type="button"
+                className="archive-dialog__confirm"
+                onClick={() => void handleDeleteConfirm()}
+                disabled={isDeletingConversation}
+              >
+                {isDeletingConversation ? '删除中' : '删除'}
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
     </section>
   );
+}
+
+ArchivePage.displayName = 'ArchivePage';
+
+export default memo(ArchivePage);
+
+function getErrorMessage(error: unknown) {
+  if (typeof error === 'string' && error.trim()) {
+    return error;
+  }
+
+  if (error instanceof Error && error.message.trim()) {
+    return error.message;
+  }
+
+  return '删除失败，请稍后重试。';
 }

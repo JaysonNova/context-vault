@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { memo, useEffect, useState } from 'react';
 import { listNotes } from '../../../lib/api';
 import type { NoteListItem } from '../../../lib/types';
 
@@ -6,7 +6,7 @@ type NotesPageProps = {
   refreshKey?: number;
 };
 
-export default function NotesPage({ refreshKey = 0 }: NotesPageProps) {
+function NotesPage({ refreshKey = 0 }: NotesPageProps) {
   const [notes, setNotes] = useState<NoteListItem[]>([]);
 
   useEffect(() => {
@@ -43,3 +43,7 @@ export default function NotesPage({ refreshKey = 0 }: NotesPageProps) {
     </section>
   );
 }
+
+NotesPage.displayName = 'NotesPage';
+
+export default memo(NotesPage);

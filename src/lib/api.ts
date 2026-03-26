@@ -74,6 +74,7 @@ type RawConversationDetail = {
   note_count: number;
   preview_text: string;
   raw_metadata_json: string;
+  resume_command?: string | null;
   messages: Array<{
     id: string;
     role: string;
@@ -104,6 +105,7 @@ export async function getConversationDetail(
     noteCount: detail.note_count,
     previewText: detail.preview_text,
     rawMetadataJson: detail.raw_metadata_json,
+    resumeCommand: detail.resume_command ?? undefined,
     messages: detail.messages.map((message) => ({
       id: message.id,
       role: message.role,
@@ -134,6 +136,10 @@ export async function listSyncRuns(): Promise<SyncRunListItem[]> {
 
 export async function runSync(request: { trigger: string }): Promise<void> {
   await invoke('run_sync_command', { request });
+}
+
+export async function softDeleteConversation(conversationId: string): Promise<void> {
+  await invoke('soft_delete_conversation_command', { conversationId });
 }
 
 export async function listNotes(): Promise<NoteListItem[]> {

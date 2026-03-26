@@ -1,4 +1,4 @@
-import { startTransition, useEffect, useState, type ReactNode } from 'react';
+import { memo, startTransition, useEffect, useState, type ReactNode } from 'react';
 import AppShell from './components/layout/AppShell';
 import type { AppView } from './components/layout/Sidebar';
 import ArchivePage from './features/archive/pages/ArchivePage';
@@ -6,6 +6,11 @@ import NotesPage from './features/notes/pages/NotesPage';
 import SettingsPage from './features/settings/pages/SettingsPage';
 import SyncLogPage from './features/sync/pages/SyncLogPage';
 import { runSync } from './lib/api';
+
+const ArchiveView = memo(ArchivePage);
+const NotesView = memo(NotesPage);
+const SyncView = memo(SyncLogPage);
+const SettingsView = memo(SettingsPage);
 
 export default function App() {
   const [activeView, setActiveView] = useState<AppView>('archive');
@@ -79,10 +84,10 @@ export default function App() {
       onSync={() => void handleSync('manual')}
       isSyncing={isSyncing}
     >
-      {renderView('archive', <ArchivePage refreshKey={refreshKey} />)}
-      {renderView('notes', <NotesPage refreshKey={refreshKey} />)}
-      {renderView('sync', <SyncLogPage refreshKey={refreshKey} />)}
-      {renderView('settings', <SettingsPage />)}
+      {renderView('archive', <ArchiveView refreshKey={refreshKey} />)}
+      {renderView('notes', <NotesView refreshKey={refreshKey} />)}
+      {renderView('sync', <SyncView refreshKey={refreshKey} />)}
+      {renderView('settings', <SettingsView />)}
     </AppShell>
   );
 }

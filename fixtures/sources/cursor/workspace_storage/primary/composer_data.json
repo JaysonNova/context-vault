@@ -1,0 +1,22 @@
+{
+  "allComposers": [
+    {
+      "type": "head",
+      "composerId": "cursor-partial-1",
+      "name": "Historical records module interface adjustment",
+      "subtitle": "Edited history_repository.dart, history_api_repository.dart",
+      "createdAt": 1773998272323,
+      "lastUpdatedAt": 1773999840559,
+      "createdOnBranch": "dev_taofang11"
+    },
+    {
+      "type": "head",
+      "composerId": "cursor-metadata-1",
+      "name": "Metadata fallback conversation",
+      "subtitle": "Edited cursor.rs, history_hub_logic.dart",
+      "createdAt": 1774001000000,
+      "lastUpdatedAt": 1774001600000,
+      "createdOnBranch": "feat_cursor_parser"
+    }
+  ]
+}

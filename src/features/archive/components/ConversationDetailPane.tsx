@@ -8,12 +8,15 @@ type ConversationDetailPaneProps = {
   onToggleExpanded?: () => void;
 };
 
+type ResumeCopyStatus = 'idle' | 'success' | 'error';
+
 export default function ConversationDetailPane({
   conversation,
   isExpanded = false,
   onToggleExpanded
 }: ConversationDetailPaneProps) {
   const [collapsedToolMessages, setCollapsedToolMessages] = useState<Record<string, boolean>>({});
+  const [resumeCopyStatus, setResumeCopyStatus] = useState<ResumeCopyStatus>('idle');
   const formattedMetadata = conversation
     ? (() => {
         try {
@@ -26,7 +29,22 @@ export default function ConversationDetailPane({
 
   useEffect(() => {
     setCollapsedToolMessages({});
+    setResumeCopyStatus('idle');
   }, [conversation?.id]);
+
+  useEffect(() => {
+    if (resumeCopyStatus === 'idle') {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setResumeCopyStatus('idle');
+    }, 2000);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [resumeCopyStatus]);
 
   if (!conversation) {
     return <section className="detail-pane detail-pane--empty">请选择一条对话查看详情</section>;
@@ -34,6 +52,21 @@ export default function ConversationDetailPane({
 
   const sourceNotice = getSourceNotice(conversation.syncStrength);
   const showTimeline = conversation.syncStrength !== 'metadata_only';
+  const resumeCopyLabel = getResumeCopyLabel(resumeCopyStatus);
+
+  const handleCopyResumeCommand = () => {
+    if (!conversation.resumeCommand) {
+      return;
+    }
+
+    void copyText(conversation.resumeCommand)
+      .then(() => {
+        setResumeCopyStatus('success');
+      })
+      .catch(() => {
+        setResumeCopyStatus('error');
+      });
+  };
 
   return (
     <section className="detail-pane" data-expanded={isExpanded}>
@@ -47,6 +80,17 @@ export default function ConversationDetailPane({
             onClick={onToggleExpanded}
           >
             {isExpanded ? '收起详情' : '展开详情'}
+          </button>
+        ) : null}
+        {conversation.resumeCommand ? (
+          <button
+            type="button"
+            className="detail-pane__resume-copy"
+            data-status={resumeCopyStatus}
+            aria-live="polite"
+            onClick={handleCopyResumeCommand}
+          >
+            {resumeCopyLabel}
           </button>
         ) : null}
       </div>
@@ -231,4 +275,24 @@ function canToggleToolPayload(messageType: string, contentText: string) {
 
 function getMessageContentId(messageId: string) {
   return `detail-pane-message-${messageId.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
+}
+
+function getResumeCopyLabel(status: ResumeCopyStatus) {
+  if (status === 'success') {
+    return '已复制';
+  }
+
+  if (status === 'error') {
+    return '复制失败';
+  }
+
+  return '复制 Resume 命令';
+}
+
+async function copyText(value: string) {
+  if (!navigator.clipboard?.writeText) {
+    throw new Error('clipboard unavailable');
+  }
+
+  await navigator.clipboard.writeText(value);
 }

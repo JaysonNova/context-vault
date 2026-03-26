@@ -45,5 +45,6 @@ pub struct ConversationDetail {
     pub note_count: i64,
     pub preview_text: String,
     pub raw_metadata_json: String,
+    pub resume_command: Option<String>,
     pub messages: Vec<ConversationDetailMessage>,
 }

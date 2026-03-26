@@ -1,0 +1,100 @@
+{
+  "rows": [
+    {
+      "key": "composerData:cursor-partial-1",
+      "value": {
+        "_v": 14,
+        "composerId": "cursor-partial-1",
+        "text": "",
+        "status": "completed",
+        "fullConversationHeadersOnly": [
+          {
+            "bubbleId": "bubble-user-1",
+            "type": 1
+          },
+          {
+            "bubbleId": "bubble-thinking-1",
+            "type": 2
+          },
+          {
+            "bubbleId": "bubble-assistant-1",
+            "type": 2
+          },
+          {
+            "bubbleId": "bubble-tool-1",
+            "type": 2
+          }
+        ]
+      }
+    },
+    {
+      "key": "composerData:cursor-metadata-1",
+      "value": {
+        "_v": 14,
+        "composerId": "cursor-metadata-1",
+        "text": "",
+        "status": "completed",
+        "fullConversationHeadersOnly": [
+          {
+            "bubbleId": "missing-bubble-1",
+            "type": 1
+          },
+          {
+            "bubbleId": "missing-bubble-2",
+            "type": 2
+          }
+        ]
+      }
+    },
+    {
+      "key": "bubbleId:cursor-partial-1:bubble-user-1",
+      "value": {
+        "_v": 3,
+        "type": 1,
+        "bubbleId": "bubble-user-1",
+        "createdAt": "2026-03-20T09:17:52.323Z",
+        "text": "@/Users/fangtao/Downloads/接口文档.md @AGENTS.md\n审视项目，针对历史记录模块开始调接口"
+      }
+    },
+    {
+      "key": "bubbleId:cursor-partial-1:bubble-thinking-1",
+      "value": {
+        "_v": 3,
+        "type": 2,
+        "bubbleId": "bubble-thinking-1",
+        "createdAt": "2026-03-20T09:17:59.401Z",
+        "text": "",
+        "capabilityType": 30,
+        "thinking": {
+          "text": "The user wants me to review the project and start integrating APIs for the history module."
+        }
+      }
+    },
+    {
+      "key": "bubbleId:cursor-partial-1:bubble-assistant-1",
+      "value": {
+        "_v": 3,
+        "type": 2,
+        "bubbleId": "bubble-assistant-1",
+        "createdAt": "2026-03-20T09:18:01.342Z",
+        "text": "Let me start by reading the API document and understanding the current history module code."
+      }
+    },
+    {
+      "key": "bubbleId:cursor-partial-1:bubble-tool-1",
+      "value": {
+        "_v": 3,
+        "type": 2,
+        "bubbleId": "bubble-tool-1",
+        "createdAt": "2026-03-20T09:18:18.085Z",
+        "text": "",
+        "capabilityType": 15,
+        "toolFormerData": {
+          "name": "run_terminal_command_v2",
+          "params": "{\"command\":\"git status 2>&1\",\"cwd\":\"/Users/fangtao/Documents/Codebase/kiko_app\",\"options\":{\"timeout\":30000}}",
+          "result": "{\"output\":\"On branch dev_taofang11\\nYour branch is up to date with 'origin/dev_taofang11'.\",\"rejected\":false}"
+        }
+      }
+    }
+  ]
+}

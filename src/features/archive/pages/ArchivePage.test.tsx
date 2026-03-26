@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
 import ArchivePage from './ArchivePage';
@@ -6,13 +6,15 @@ import ArchivePage from './ArchivePage';
 const apiMocks = vi.hoisted(() => ({
   listConversations: vi.fn(),
   getArchiveFacets: vi.fn(),
-  getConversationDetail: vi.fn()
+  getConversationDetail: vi.fn(),
+  softDeleteConversation: vi.fn()
 }));
 
 vi.mock('../../../lib/api', () => ({
   listConversations: apiMocks.listConversations,
   getArchiveFacets: apiMocks.getArchiveFacets,
-  getConversationDetail: apiMocks.getConversationDetail
+  getConversationDetail: apiMocks.getConversationDetail,
+  softDeleteConversation: apiMocks.softDeleteConversation
 }));
 
 function buildConversation(index: number, syncStrength: 'full' | 'partial' = 'full') {
@@ -407,4 +409,83 @@ it('resets pagination to the first page when filters change', async () => {
   expect(screen.getByText('当前显示 1-6 / 6 条')).toBeInTheDocument();
   expect(await screen.findByRole('heading', { name: 'Conversation 7' })).toBeInTheDocument();
   expect(screen.queryByRole('button', { name: 'Conversation 1' })).not.toBeInTheDocument();
+});
+
+it('opens a delete confirmation dialog and does not delete when cancelled', async () => {
+  const user = userEvent.setup();
+  const conversations = [buildConversation(1), buildConversation(2)];
+
+  apiMocks.getArchiveFacets.mockResolvedValueOnce({
+    totalCount: conversations.length,
+    sourceCounts: [{ sourceApp: 'codex', count: conversations.length }]
+  });
+  apiMocks.listConversations.mockResolvedValue(conversations);
+  apiMocks.getConversationDetail.mockImplementation(async (conversationId: string) =>
+    buildConversationDetail(
+      conversations.find((conversation) => conversation.id === conversationId) ?? conversations[0]
+    )
+  );
+
+  render(<ArchivePage />);
+
+  expect(await screen.findByRole('button', { name: 'Conversation 1' })).toBeInTheDocument();
+
+  await user.click(screen.getByRole('button', { name: '删除 Conversation 1' }));
+
+  expect(screen.getByRole('dialog', { name: '确认删除历史记录' })).toBeInTheDocument();
+  expect(
+    screen.getByText(/仅从 Context Vault 已同步数据库中隐藏，不删除本地 Claude\/Codex 原始记录/)
+  ).toBeInTheDocument();
+
+  await user.click(screen.getByRole('button', { name: '取消' }));
+
+  await waitFor(() => {
+    expect(
+      screen.queryByRole('dialog', { name: '确认删除历史记录' })
+    ).not.toBeInTheDocument();
+  });
+  expect(apiMocks.softDeleteConversation).not.toHaveBeenCalled();
+});
+
+it('deletes the selected conversation and selects the next visible item', async () => {
+  const user = userEvent.setup();
+  const initialConversations = [buildConversation(1), buildConversation(2)];
+  const remainingConversations = [buildConversation(2)];
+
+  apiMocks.getArchiveFacets
+    .mockResolvedValueOnce({
+      totalCount: initialConversations.length,
+      sourceCounts: [{ sourceApp: 'codex', count: initialConversations.length }]
+    })
+    .mockResolvedValueOnce({
+      totalCount: remainingConversations.length,
+      sourceCounts: [{ sourceApp: 'codex', count: remainingConversations.length }]
+    });
+  apiMocks.listConversations
+    .mockResolvedValueOnce(initialConversations)
+    .mockResolvedValueOnce(remainingConversations);
+  apiMocks.getConversationDetail.mockImplementation(async (conversationId: string) =>
+    buildConversationDetail(
+      [...initialConversations, ...remainingConversations].find(
+        (conversation) => conversation.id === conversationId
+      ) ?? remainingConversations[0]
+    )
+  );
+  apiMocks.softDeleteConversation.mockResolvedValue(undefined);
+
+  render(<ArchivePage />);
+
+  expect(await screen.findByRole('heading', { name: 'Conversation 1' })).toBeInTheDocument();
+
+  await user.click(screen.getByRole('button', { name: '删除 Conversation 1' }));
+  await user.click(screen.getByRole('button', { name: '删除' }));
+
+  await waitFor(() => {
+    expect(apiMocks.softDeleteConversation).toHaveBeenCalledWith('1');
+  });
+  await waitFor(() => {
+    expect(screen.queryByRole('button', { name: 'Conversation 1' })).not.toBeInTheDocument();
+  });
+  expect(await screen.findByRole('heading', { name: 'Conversation 2' })).toBeInTheDocument();
+  expect(screen.getByText('当前显示 1-1 / 1 条')).toBeInTheDocument();
 });

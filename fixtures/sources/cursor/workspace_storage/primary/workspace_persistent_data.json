@@ -1,0 +1,14 @@
+{
+  "cachedSelectedGitState": {
+    "ref": "dev_taofang11"
+  },
+  "cachedSelectedRemote": {
+    "name": "origin",
+    "url": "ssh://code.iflytek.com:30004/CBG_AIM/kiko/kiko_app.git",
+    "rootUri": {
+      "external": "file:///Users/fangtao/Documents/Codebase/kiko_app",
+      "path": "/Users/fangtao/Documents/Codebase/kiko_app",
+      "scheme": "file"
+    }
+  }
+}

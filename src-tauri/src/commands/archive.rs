@@ -1,9 +1,10 @@
-use rusqlite::{named_params, Connection};
+use rusqlite::{named_params, Connection, OptionalExtension};
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 use crate::db::connection::open_default_db;
 use crate::db::search::build_like_pattern;
-use crate::error::AppResult;
+use crate::error::{AppError, AppResult};
 use crate::models::{
     ArchiveFacets, ArchiveSourceCount, ConversationDetail, ConversationDetailMessage,
     ConversationListItem,
@@ -50,14 +51,15 @@ pub fn list_conversations(
             WHERE messages.conversation_id = conversations.id
             ORDER BY created_at DESC
             LIMIT 1
-          ), '') AS preview_text,
+          ), conversations.subtitle, '') AS preview_text,
           COUNT(note_sources.note_id) AS note_count
         FROM conversations
         LEFT JOIN workspaces
           ON workspaces.id = conversations.workspace_id
         LEFT JOIN note_sources
           ON note_sources.conversation_id = conversations.id
-        WHERE (
+        WHERE conversations.status <> 'deleted'
+          AND (
             :text IS NULL
             OR conversations.title LIKE :text
             OR workspaces.display_name LIKE :text
@@ -124,7 +126,7 @@ pub fn list_conversations(
 
 pub fn get_archive_facets(connection: &Connection) -> AppResult<ArchiveFacets> {
     let total_count = connection.query_row(
-        "SELECT COUNT(*) FROM conversations",
+        "SELECT COUNT(*) FROM conversations WHERE status <> 'deleted'",
         [],
         |row| row.get::<_, i64>(0),
     )?;
@@ -133,6 +135,7 @@ pub fn get_archive_facets(connection: &Connection) -> AppResult<ArchiveFacets> {
         "
         SELECT source_app, COUNT(*)
         FROM conversations
+        WHERE status <> 'deleted'
         GROUP BY source_app
         ORDER BY source_app ASC
         ",
@@ -166,6 +169,7 @@ pub fn get_conversation_detail(
               conversations.id,
               conversations.title,
               conversations.source_app,
+              conversations.source_conversation_id,
               conversations.sync_strength,
               workspaces.display_name,
               conversations.updated_at,
@@ -183,7 +187,7 @@ pub fn get_conversation_detail(
                 WHERE messages.conversation_id = conversations.id
                 ORDER BY created_at DESC
                 LIMIT 1
-              ), '') AS preview_text,
+              ), conversations.subtitle, '') AS preview_text,
               conversations.raw_metadata_json
             FROM conversations
             LEFT JOIN workspaces
@@ -191,10 +195,12 @@ pub fn get_conversation_detail(
             LEFT JOIN note_sources
               ON note_sources.conversation_id = conversations.id
             WHERE conversations.id = ?1
+              AND conversations.status <> 'deleted'
             GROUP BY
               conversations.id,
               conversations.title,
               conversations.source_app,
+              conversations.source_conversation_id,
               conversations.sync_strength,
               workspaces.display_name,
               conversations.updated_at,
@@ -202,16 +208,25 @@ pub fn get_conversation_detail(
             ",
             [conversation_id],
             |row| {
+                let source_app: String = row.get(2)?;
+                let source_conversation_id: String = row.get(3)?;
+                let raw_metadata_json: String = row.get(9)?;
+
                 Ok(ConversationDetail {
                     id: row.get(0)?,
                     title: row.get(1)?,
-                    source_app: row.get(2)?,
-                    sync_strength: row.get(3)?,
-                    workspace_name: row.get(4)?,
-                    updated_at: row.get(5)?,
-                    note_count: row.get(6)?,
-                    preview_text: row.get(7)?,
-                    raw_metadata_json: row.get(8)?,
+                    source_app: source_app.clone(),
+                    sync_strength: row.get(4)?,
+                    workspace_name: row.get(5)?,
+                    updated_at: row.get(6)?,
+                    note_count: row.get(7)?,
+                    preview_text: row.get(8)?,
+                    raw_metadata_json: raw_metadata_json.clone(),
+                    resume_command: build_resume_command(
+                        &source_app,
+                        &source_conversation_id,
+                        &raw_metadata_json,
+                    ),
                     messages: Vec::new(),
                 })
             },
@@ -249,6 +264,75 @@ pub fn get_conversation_detail(
     Ok(Some(detail))
 }
 
+pub fn soft_delete_conversation(connection: &Connection, conversation_id: &str) -> AppResult<()> {
+    let source_app = connection
+        .query_row(
+            "SELECT source_app
+             FROM conversations
+             WHERE id = ?1
+               AND status <> 'deleted'",
+            [conversation_id],
+            |row| row.get::<_, String>(0),
+        )
+        .optional()?;
+
+    let Some(source_app) = source_app else {
+        return Err(AppError::Message("conversation not found".into()));
+    };
+
+    if source_app != "codex" && source_app != "claude_code" {
+        return Err(AppError::Message(
+            "only codex and claude_code conversations can be deleted".into(),
+        ));
+    }
+
+    let updated = connection.execute(
+        "UPDATE conversations
+         SET status = 'deleted'
+         WHERE id = ?1",
+        [conversation_id],
+    )?;
+
+    if updated == 0 {
+        return Err(AppError::Message("conversation not found".into()));
+    }
+
+    Ok(())
+}
+
+fn build_resume_command(
+    source_app: &str,
+    source_conversation_id: &str,
+    raw_metadata_json: &str,
+) -> Option<String> {
+    let session_id = source_conversation_id.trim();
+    if session_id.is_empty() {
+        return None;
+    }
+
+    let cwd = serde_json::from_str::<Value>(raw_metadata_json)
+        .ok()
+        .and_then(|metadata| metadata.get("cwd").and_then(Value::as_str).map(str::to_owned))
+        .map(|value| value.trim().to_owned())
+        .filter(|value| !value.is_empty());
+
+    match source_app {
+        "codex" => Some(match cwd {
+            Some(cwd) => format!("codex resume -C {} {}", shell_escape(&cwd), session_id),
+            None => format!("codex resume {}", session_id),
+        }),
+        "claude_code" => Some(match cwd {
+            Some(cwd) => format!("cd {} && claude --resume {}", shell_escape(&cwd), session_id),
+            None => format!("claude --resume {}", session_id),
+        }),
+        _ => None,
+    }
+}
+
+fn shell_escape(value: &str) -> String {
+    format!("'{}'", value.replace('\'', "'\"'\"'"))
+}
+
 #[tauri::command]
 pub fn list_conversations_command(
     query: Option<ArchiveQuery>,
@@ -269,4 +353,10 @@ pub fn get_conversation_detail_command(
 ) -> Result<Option<ConversationDetail>, String> {
     let connection = open_default_db().map_err(|error| error.to_string())?;
     get_conversation_detail(&connection, &conversation_id).map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+pub fn soft_delete_conversation_command(conversation_id: String) -> Result<(), String> {
+    let connection = open_default_db().map_err(|error| error.to_string())?;
+    soft_delete_conversation(&connection, &conversation_id).map_err(|error| error.to_string())
 }

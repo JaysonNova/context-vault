@@ -4,6 +4,7 @@ fn main() {
             context_vault_lib::commands::archive::list_conversations_command,
             context_vault_lib::commands::archive::get_archive_facets_command,
             context_vault_lib::commands::archive::get_conversation_detail_command,
+            context_vault_lib::commands::archive::soft_delete_conversation_command,
             context_vault_lib::commands::notes::list_notes_command,
             context_vault_lib::commands::settings::load_settings_command,
             context_vault_lib::commands::sync::list_sync_runs_command,

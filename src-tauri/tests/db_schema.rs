@@ -27,6 +27,17 @@ impl TestDb {
             .unwrap()
             > 0
     }
+
+    fn has_index(&self, index_name: &str) -> bool {
+        self.conn
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND name = ?1",
+                [index_name],
+                |row| row.get::<_, i64>(0),
+            )
+            .unwrap()
+            > 0
+    }
 }
 
 #[test]
@@ -41,4 +52,15 @@ fn migrations_create_core_tables_and_fts() {
     assert!(db.has_table("sync_runs"));
     assert!(db.has_table("conversation_search"));
     assert!(db.has_table("note_search"));
+}
+
+#[test]
+fn migrations_create_archive_performance_indexes() {
+    let db = TestDb::new();
+    db.run_migrations();
+
+    assert!(db.has_index("idx_conversations_updated_at"));
+    assert!(db.has_index("idx_messages_conversation_created_at"));
+    assert!(db.has_index("idx_messages_conversation_type_created_at"));
+    assert!(db.has_index("idx_note_sources_conversation_id"));
 }

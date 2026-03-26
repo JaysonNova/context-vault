@@ -1,4 +1,6 @@
-export default function SettingsPage() {
+import { memo } from 'react';
+
+function SettingsPage() {
   return (
     <section className="panel-page">
       <div className="panel-page__header">
@@ -14,3 +16,7 @@ export default function SettingsPage() {
     </section>
   );
 }
+
+SettingsPage.displayName = 'SettingsPage';
+
+export default memo(SettingsPage);

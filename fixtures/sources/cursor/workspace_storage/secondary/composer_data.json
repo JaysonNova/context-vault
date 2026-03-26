@@ -1,0 +1,13 @@
+{
+  "allComposers": [
+    {
+      "type": "head",
+      "composerId": "cursor-workspace-only-1",
+      "name": "Workspace only conversation",
+      "subtitle": "Edited sync_log_page.dart",
+      "createdAt": 1774101000000,
+      "lastUpdatedAt": 1774101600000,
+      "createdOnBranch": "feat_sync_log"
+    }
+  ]
+}
